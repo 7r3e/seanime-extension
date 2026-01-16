@@ -7,7 +7,7 @@
   "type": "plugin",
   "description": "Lets you switch between multiple debrid provider API keys (RealDebrid, Torbox and AllDebrid)",
   "author": "Kaktus",
-  "icon": "https://raw.githubusercontent.com/Kaktusmann/seanime-extension/refs/heads/main/src/icon.png",
+  "icon": "https://raw.githubusercontent.com/Kaktusmann/seanime-extension/refs/heads/main/src/DebridToggle/icon.ico",
   "website": "",
   "lang": "multi",
   "payloadURI": "https://raw.githubusercontent.com/Kaktusmann/seanime-extension/refs/heads/main/src/main.ts",
