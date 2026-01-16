@@ -20,7 +20,7 @@ function init() {
 
         // Create tray icon
         const tray = ctx.newTray({
-            iconUrl: "https://cdn-icons-png.flaticon.com/512/3209/3209265.png",
+            iconUrl: "https://raw.githubusercontent.com/Kaktusmann/seanime-extension/refs/heads/main/src/DebridToggle/icon.ico",
             withContent: true,
             width: "400px",
             minHeight: "300px"
