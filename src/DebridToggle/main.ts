@@ -228,10 +228,6 @@ function init() {
                                             intent: "alert",
                                             size: "sm",
                                             onClick: ctx.eventHandler("delete-" + provider.name, () => {
-                                                if (isActive) {
-                                                    ctx.toast.warning("Cannot delete active provider")
-                                                    return
-                                                }
                                                 deleteProvider(provider.name)
                                                 tray.update()
                                             })
