@@ -1,0 +1,27 @@
+{
+  "id": "debridtoggle",
+  "name": "Debrid Toggle",
+  "version": "1.0.0",
+  "manifestURI": "",
+  "language": "typescript",
+  "type": "plugin",
+  "description": "Lets you switch between multiple debrid provider API keys (RealDebrid, Torbox and AllDebrid)",
+  "author": "Kaktus",
+  "icon": "https://raw.githubusercontent.com/Kaktusmann/seanime-extension/refs/heads/main/src/icon.png",
+  "website": "",
+  "lang": "multi",
+  "payloadURI": "https://raw.githubusercontent.com/Kaktusmann/seanime-extension/refs/heads/main/src/main.ts",
+  "plugin": {
+    "version": "1",
+    "permissions": {
+      "scopes": ["storage"],
+      "allow": {
+        "networkAccess": {
+          "allowedDomains": ["localhost:43211"],
+          "reasoning": "Needed to access and modify Seanime settings via local API."
+        }
+      }
+    }
+  },
+  "isDevelopment": true
+}
