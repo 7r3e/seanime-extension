@@ -65,15 +65,10 @@ function init() {
                 // Build payload with settings wrapper
                 const updatePayload = {
                     settings: {
-                        id: current.id,
-                        createdAt: current.createdAt,
-                        updatedAt: current.updatedAt,
+                        ...current,
                         enabled: true,
                         provider: provider.type,
-                        apiKey: provider.apiKey,
-                        includeDebridStreamInLibrary: current.includeDebridStreamInLibrary,
-                        streamAutoSelect: current.streamAutoSelect,
-                        streamPreferredResolution: current.streamPreferredResolution
+                        apiKey: provider.apiKey
                     }
                 }
 
