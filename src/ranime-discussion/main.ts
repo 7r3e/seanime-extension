@@ -16,6 +16,38 @@ function init() {
             return `https://www.reddit.com/r/anime/search/?q=${q}&restrict_sr=1`
         }
 
+        async function openUrl(url: string) {
+            const body = await ctx.dom.queryOne("body")
+            if (!body) return
+            const script = await ctx.dom.createElement("script")
+            script.setInnerHTML(`window.open(${JSON.stringify(url)}, "_blank")`)
+            body.append(script)
+        }
+
+        // ── Episode grid context menu for all grid types ──────────────────────
+        const gridTypes: Array<"library" | "torrentstream" | "debridstream" | "onlinestream" | "undownloaded" | "medialinks" | "mediastream"> =
+            ["library", "torrentstream", "debridstream", "onlinestream", "undownloaded", "medialinks", "mediastream"]
+
+        for (const gridType of gridTypes) {
+            const item = ctx.action.newEpisodeGridItemMenuItem({
+                label: "r/anime Discussion",
+                type: gridType,
+            })
+            item.mount()
+            item.onClick((event) => {
+                const episode = event.episode as $app.Anime_Episode
+                const media = episode.baseAnime
+                if (!media) return
+                const title =
+                    media.title?.romaji ||
+                    media.title?.english ||
+                    media.title?.native ||
+                    ""
+                openUrl(buildRedditUrl(title, episode.episodeNumber))
+            })
+        }
+
+        // ── DOM injection on anime entry page ─────────────────────────────────
         ctx.screen.onNavigate(async ({ pathname, searchParams }) => {
             if (pathname !== "/entry") return
             const id = Number(searchParams.id)
@@ -37,7 +69,6 @@ function init() {
                 return console.log(`r/anime-discussion: container not ready, retrying in ${reloadCd.get()}ms`)
             }
 
-            // Remove any previously injected button for this page
             const old = await container.query(`[data-ranime-discussion]`)
             old.forEach(el => el.remove())
 
@@ -76,15 +107,31 @@ function init() {
             })) btn.setAttribute(k, v)
 
             btn.setCssText(
-                "display:inline-flex;align-items:center;gap:0.35rem;" +
-                "padding:0.35rem 0.75rem;background-color:#FF4500;color:#fff;" +
-                "border-radius:9999px;font-size:0.85rem;font-weight:600;" +
-                "text-decoration:none;white-space:nowrap;cursor:pointer;"
+                "display:inline-flex;align-items:center;gap:0.4rem;" +
+                "padding:0.3rem 0.65rem 0.3rem 0.45rem;background:transparent;color:#fff;" +
+                "border-radius:9999px;font-size:0.82rem;font-weight:600;" +
+                "text-decoration:none;white-space:nowrap;cursor:pointer;" +
+                "vertical-align:middle;"
             )
 
-            const label = await ctx.dom.createElement("span")
-            label.setText(`r/anime Ep ${episodeNumber}`)
-            btn.append(label)
+            // Reddit alien SVG (black/white)
+            const icon = await ctx.dom.createElement("span")
+            icon.setStyle("display", "inline-flex")
+            icon.setStyle("align-items", "center")
+            icon.setStyle("flex-shrink", "0")
+            icon.setInnerHTML(
+                `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20">` +
+                `<circle cx="10" cy="10" r="10" fill="rgba(255,255,255,0.15)"/>` +
+                `<path fill="#fff" d="M16.7 9.9a1.4 1.4 0 0 0-2.4-.9 6.8 6.8 0 0 0-3.6-1.1l.6-2.9 2 .4a1 1 0 1 0 .1-.5l-2.2-.5a.2.2 0 0 0-.3.2l-.7 3.3a6.8 6.8 0 0 0-3.6 1.1 1.4 1.4 0 1 0-1.5 2.2 2.7 2.7 0 0 0 0 .4c0 2 2.3 3.6 5.2 3.6s5.2-1.6 5.2-3.6a2.7 2.7 0 0 0 0-.4 1.4 1.4 0 0 0 .8-1.3zM7.3 11a1 1 0 1 1 1 1 1 1 0 0 1-1-1zm5.5 2.6a3.4 3.4 0 0 1-2.7.9 3.4 3.4 0 0 1-2.7-.9.2.2 0 0 1 .3-.3 3 3 0 0 0 2.4.7 3 3 0 0 0 2.4-.7.2.2 0 0 1 .3.3zm-.2-1.6a1 1 0 1 1 1-1 1 1 0 0 1-1 1z"/>` +
+                `</svg>`
+            )
+
+            // Episode number label
+            const epLabel = await ctx.dom.createElement("span")
+            epLabel.setText(`Ep ${episodeNumber}`)
+
+            btn.append(icon)
+            btn.append(epLabel)
             btnAL.after(btn)
         })
     })
