@@ -7,7 +7,7 @@
   "type": "plugin",
   "description": "Adds a button to the anime page that searches for the discussion thread on r/anime for that anime episode.",
   "author": "Kaktus",
-  "icon": "https://raw.githubusercontent.com/Kaktusmann/seanime-extension/refs/heads/main/src/ranime-discussion/icon.png",
+  "icon": "https://raw.githubusercontent.com/Kaktusmann/seanime-extension/refs/heads/main/src/ranime-discussion/icon.ico",
   "website": "",
   "lang": "multi",
   "payloadURI": "https://raw.githubusercontent.com/Kaktusmann/seanime-extension/refs/heads/main/src/ranime-discussion/main.ts",
