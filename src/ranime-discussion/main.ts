@@ -6,14 +6,20 @@
 function init() {
     $ui.register((ctx) => {
         const reloadCd = ctx.state<number>(500)
+        const mode = ctx.state<"episode" | "general">("episode")
 
         function isCustomSource(id: number) {
             return id >= 2 ** 31
         }
 
-        function buildRedditUrl(title: string, episode: number): string {
+        function buildEpisodeUrl(title: string, episode: number): string {
             const q = encodeURIComponent(`${title} episode ${episode}`)
             return `https://www.reddit.com/r/anime/search/?q=${q}&restrict_sr=1`
+        }
+
+        function buildGeneralUrl(mediaId: number): string {
+            const q = `subreddit:anime self:true (flair:Episode OR Discussion) selftext:"anime/${mediaId}"`
+            return `https://www.reddit.com/r/anime/search/?q=${encodeURIComponent(q)}&sort=new`
         }
 
         async function openUrl(url: string) {
@@ -23,6 +29,31 @@ function init() {
             script.setInnerHTML(`window.open(${JSON.stringify(url)}, "_blank")`)
             body.append(script)
         }
+
+        // ── Tray with settings ────────────────────────────────────────────────
+
+        const tray = ctx.newTray({
+            iconUrl: `https://styles.redditmedia.com/t5_2qh22/styles/communityIcon_3low8batpmag1.png`,
+            withContent: true,
+        })
+
+        const modeRef = ctx.fieldRef<string>("episode")
+        modeRef.onValueChange((value) => {
+            mode.set(value as "episode" | "general")
+        })
+
+        tray.render(() => {
+            return tray.stack([
+                tray.text("r/anime Discussion — Settings"),
+                tray.radioGroup("Button link mode", {
+                    options: [
+                        { label: "Episode Discussion  (search by title + episode)", value: "episode" },
+                        { label: "All Discussions  (search by AniList ID)", value: "general" },
+                    ],
+                    fieldRef: modeRef,
+                }),
+            ])
+        })
 
         // ── Episode grid context menu for all grid types ──────────────────────
         const gridTypes: Array<"library" | "torrentstream" | "debridstream" | "onlinestream" | "undownloaded" | "medialinks" | "mediastream"> =
@@ -38,12 +69,11 @@ function init() {
                 const episode = event.episode as $app.Anime_Episode
                 const media = episode.baseAnime
                 if (!media) return
-                const title =
-                    media.title?.romaji ||
-                    media.title?.english ||
-                    media.title?.native ||
-                    ""
-                openUrl(buildRedditUrl(title, episode.episodeNumber))
+                const url = buildEpisodeUrl(
+                        media.title?.romaji || media.title?.english || media.title?.native || "",
+                        episode.episodeNumber
+                    )
+                openUrl(url)
             })
         }
 
@@ -72,28 +102,32 @@ function init() {
             const old = await container.query(`[data-ranime-discussion]`)
             old.forEach(el => el.remove())
 
-            let episodeNumber: number | null = null
-            let animeTitle = ""
+            let url = ""
+            let epLabel = ""
 
             try {
                 const entry = await ctx.anime.getAnimeEntry(id)
                 if (!entry?.media) return
-
                 const media = entry.media
-                animeTitle =
-                    media.title?.romaji ||
-                    media.title?.english ||
-                    media.title?.native ||
-                    ""
 
-                episodeNumber = entry.listData?.progress ?? null
+                if (mode.get() === "general") {
+                    url = buildGeneralUrl(media.id)
+                } else {
+                    const title =
+                        media.title?.romaji ||
+                        media.title?.english ||
+                        media.title?.native ||
+                        ""
+                    const episodeNumber = entry.listData?.progress ?? null
+                    if (!episodeNumber || !title) return
+                    url = buildEpisodeUrl(title, episodeNumber)
+                    epLabel = `Ep ${episodeNumber}`
+                }
             } catch (e) {
                 return console.log("r/anime-discussion: getAnimeEntry error:", e)
             }
 
-            if (!episodeNumber || !animeTitle) return
-
-            const url = buildRedditUrl(animeTitle, episodeNumber)
+            if (!url) return
 
             const btnAL = await container.queryOne("a")
             if (!btnAL) return console.log("r/anime-discussion: AniList button not found")
@@ -103,18 +137,16 @@ function init() {
                 href: url,
                 target: "_blank",
                 rel: "noopener noreferrer",
-                "data-ranime-discussion": `${id}-${episodeNumber}`,
+                "data-ranime-discussion": `${id}`,
             })) btn.setAttribute(k, v)
 
             btn.setCssText(
                 "display:inline-flex;align-items:center;gap:0.4rem;" +
                 "padding:0.3rem 0.65rem 0.3rem 0.45rem;background:transparent;color:#fff;" +
                 "border-radius:9999px;font-size:0.82rem;font-weight:600;" +
-                "text-decoration:none;white-space:nowrap;cursor:pointer;" +
-                "vertical-align:middle;"
+                "text-decoration:none;white-space:nowrap;cursor:pointer;vertical-align:middle;"
             )
 
-            // Reddit alien SVG (black/white)
             const icon = await ctx.dom.createElement("span")
             icon.setStyle("display", "inline-flex")
             icon.setStyle("align-items", "center")
@@ -125,13 +157,14 @@ function init() {
                 `<path fill="#fff" d="M16.7 9.9a1.4 1.4 0 0 0-2.4-.9 6.8 6.8 0 0 0-3.6-1.1l.6-2.9 2 .4a1 1 0 1 0 .1-.5l-2.2-.5a.2.2 0 0 0-.3.2l-.7 3.3a6.8 6.8 0 0 0-3.6 1.1 1.4 1.4 0 1 0-1.5 2.2 2.7 2.7 0 0 0 0 .4c0 2 2.3 3.6 5.2 3.6s5.2-1.6 5.2-3.6a2.7 2.7 0 0 0 0-.4 1.4 1.4 0 0 0 .8-1.3zM7.3 11a1 1 0 1 1 1 1 1 1 0 0 1-1-1zm5.5 2.6a3.4 3.4 0 0 1-2.7.9 3.4 3.4 0 0 1-2.7-.9.2.2 0 0 1 .3-.3 3 3 0 0 0 2.4.7 3 3 0 0 0 2.4-.7.2.2 0 0 1 .3.3zm-.2-1.6a1 1 0 1 1 1-1 1 1 0 0 1-1 1z"/>` +
                 `</svg>`
             )
-
-            // Episode number label
-            const epLabel = await ctx.dom.createElement("span")
-            epLabel.setText(`Ep ${episodeNumber}`)
-
             btn.append(icon)
-            btn.append(epLabel)
+
+            if (epLabel) {
+                const epSpan = await ctx.dom.createElement("span")
+                epSpan.setText(epLabel)
+                btn.append(epSpan)
+            }
+
             btnAL.after(btn)
         })
     })
