@@ -12,7 +12,7 @@
   "lang": "multi",
   "payloadURI": "https://raw.githubusercontent.com/Kaktusmann/seanime-extension/refs/heads/main/src/DebridToggle/main.ts",
   "plugin": {
-    "version": "1.1.0",
+    "version": "1",
     "permissions": {
       "scopes": ["storage", "settings"]
     }
