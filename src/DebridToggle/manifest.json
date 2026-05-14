@@ -14,7 +14,7 @@
   "plugin": {
     "version": "1",
     "permissions": {
-      "scopes": ["storage"],
+      "scopes": ["storage", "settings"],
       "allow": {
         "networkAccess": {
           "allowedDomains": ["localhost:43211"],
