@@ -1,3 +1,8 @@
+/// <reference path="./plugin.d.ts" />
+/// <reference path="./system.d.ts" />
+/// <reference path="./app.d.ts" />
+/// <reference path="./core.d.ts" />
+
 interface DebridProvider {
     name: string
     apiKey: string
@@ -44,58 +49,29 @@ function init() {
             $storage.set("activeProvider", activeProvider.get())
         }, [activeProvider])
 
-        // Function to update Seanime settings
+        // Function to update Seanime settings using appSettings API
         async function setDebridProvider(provider: DebridProvider) {
             try {
-                status.set("Switching to " + provider.name + "...")
-                
-                // Get current settings to preserve other fields
-                const getResponse = await ctx.fetch("http://localhost:43211/api/v1/debrid/settings", {
-                    method: "GET"
-                })
-
-                if (!getResponse.ok) {
-                    status.set("Error: Failed to get settings")
-                    tray.update()
-                    return
-                }
-
-                const current = getResponse.json().data
-                
-                // Build payload with settings wrapper
-                const updatePayload = {
-                    settings: {
+                status.set("Switching to " + provider.name + "...");
+                // Get current debrid settings (fallback to empty object)
+                const current = await ctx.appSettings.get("debrid", {});
+                // Patch only the debrid section
+                await ctx.appSettings.patch({
+                    debrid: {
                         ...current,
                         enabled: true,
                         provider: provider.type,
                         apiKey: provider.apiKey
                     }
-                }
-
-                // Save debrid settings
-                const saveResponse = await ctx.fetch("http://localhost:43211/api/v1/debrid/settings", {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(updatePayload)
-                })
-
-                if (!saveResponse.ok) {
-                    status.set("Error: Failed to save settings")
-                    tray.update()
-                    return
-                }
-
-                activeProvider.set(provider.name)
-                status.set("✓ Active: " + provider.name)
-                ctx.toast.success("Switched to " + provider.name)
-                tray.update()
-                
+                });
+                activeProvider.set(provider.name);
+                status.set("✓ Active: " + provider.name);
+                ctx.toast.success("Switched to " + provider.name);
+                tray.update();
             } catch (error) {
-                status.set("Error: " + $toString(error))
-                ctx.toast.error("Failed to switch provider")
-                tray.update()
+                status.set("Error: " + $toString(error));
+                ctx.toast.error("Failed to switch provider");
+                tray.update();
             }
         }
 
