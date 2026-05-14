@@ -14,13 +14,7 @@
   "plugin": {
     "version": "1.1.0",
     "permissions": {
-      "scopes": ["storage", "settings"],
-      "allow": {
-        "networkAccess": {
-          "allowedDomains": ["localhost:43211"],
-          "reasoning": "Needed to access and modify Seanime settings via local API."
-        }
-      }
+      "scopes": ["storage", "settings"]
     }
   }
 }
