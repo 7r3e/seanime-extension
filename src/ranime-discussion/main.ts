@@ -7,6 +7,7 @@ function init() {
     $ui.register((ctx) => {
         const reloadCd = ctx.state<number>(500)
         const mode = ctx.state<"episode" | "general">("episode")
+        const currentMediaId = ctx.state<number>(0)
 
         function isCustomSource(id: number) {
             return id >= 2 ** 31
@@ -77,27 +78,15 @@ function init() {
             })
         }
 
-        // ── DOM injection on anime entry page ─────────────────────────────────
-        ctx.screen.onNavigate(async ({ pathname, searchParams }) => {
-            if (pathname !== "/entry") return
-            const id = Number(searchParams.id)
-            if (!id || isCustomSource(id)) return
-
-            reloadCd.set(500)
-
+        // ── Button injection ───────────────────────────────────────────────────
+        async function injectButton(id: number, progressOverride?: number) {
+            console.log("r/anime-discussion: injectButton called", { id, progressOverride })
             const $CONTAINER = `[data-anime-meta-section-buttons-container]`
             const container = await ctx.dom.queryOne($CONTAINER, {
                 withInnerHTML: true,
                 identifyChildren: true,
             })
-
-            if (!container) {
-                ctx.setTimeout(() => {
-                    ctx.screen.loadCurrent()
-                    reloadCd.set(reloadCd.get() + 500)
-                }, reloadCd.get())
-                return console.log(`r/anime-discussion: container not ready, retrying in ${reloadCd.get()}ms`)
-            }
+            if (!container) return false
 
             const old = await container.query(`[data-ranime-discussion]`)
             old.forEach(el => el.remove())
@@ -107,7 +96,7 @@ function init() {
 
             try {
                 const entry = await ctx.anime.getAnimeEntry(id)
-                if (!entry?.media) return
+                if (!entry?.media) return true
                 const media = entry.media
 
                 if (mode.get() === "general") {
@@ -118,19 +107,31 @@ function init() {
                         media.title?.english ||
                         media.title?.native ||
                         ""
-                    const episodeNumber = entry.listData?.progress ?? null
-                    if (!episodeNumber || !title) return
+                    let episodeNumber: number | null = null
+                    if (typeof progressOverride === "number") {
+                        episodeNumber = progressOverride
+                        console.log("r/anime-discussion: using progressOverride", { episodeNumber })
+                    } else {
+                        episodeNumber = entry.listData?.progress ?? null
+                        console.log("r/anime-discussion: using entry.listData.progress", { episodeNumber })
+                    }
+                    console.log("r/anime-discussion: injectButton episode", { episodeNumber, title, entryProgress: entry.listData?.progress, progressOverride })
+                    if (!episodeNumber || !title) return true
                     url = buildEpisodeUrl(title, episodeNumber)
                     epLabel = `Ep ${episodeNumber}`
                 }
             } catch (e) {
-                return console.log("r/anime-discussion: getAnimeEntry error:", e)
+                console.log("r/anime-discussion: getAnimeEntry error:", e)
+                return true
             }
 
-            if (!url) return
+            if (!url) return true
 
             const btnAL = await container.queryOne("a")
-            if (!btnAL) return console.log("r/anime-discussion: AniList button not found")
+            if (!btnAL) {
+                console.log("r/anime-discussion: AniList button not found")
+                return true
+            }
 
             const btn = await ctx.dom.createElement("a")
             for (const [k, v] of Object.entries({
@@ -166,6 +167,51 @@ function init() {
             }
 
             btnAL.after(btn)
+            return true
+        }
+
+        // ── DOM injection on anime entry page ─────────────────────────────────
+        ctx.screen.onNavigate(async ({ pathname, searchParams }) => {
+            if (pathname !== "/entry") {
+                currentMediaId.set(0)
+                return
+            }
+            const id = Number(searchParams.id)
+            if (!id || isCustomSource(id)) return
+
+            currentMediaId.set(id)
+            reloadCd.set(500)
+
+            const ok = await injectButton(id)
+            if (!ok) {
+                ctx.setTimeout(() => {
+                    ctx.screen.loadCurrent()
+                    reloadCd.set(reloadCd.get() + 500)
+                }, reloadCd.get())
+                console.log(`r/anime-discussion: container not ready, retrying in ${reloadCd.get()}ms`)
+            }
         })
+
+        // ── Re-inject when episode progress is updated ─────────────────────────
+        // onPreUpdateEntryProgress (outside) stores the new progress value;
+        // onPostUpdateEntryProgress (outside) signals completion.
+        // We use the pre-hook progress directly to avoid a stale getAnimeEntry cache.
+        $store.watch("RANIME_POST_UPDATE_ENTRY_PROGRESS", (post: { mediaId?: number }) => {
+            const trackedId = currentMediaId.get()
+            if (!trackedId || post?.mediaId !== trackedId) return
+            const pre = $store.get("RANIME_PRE_UPDATE_ENTRY_PROGRESS") as { mediaId?: number; progress?: number } | null
+            const progressOverride = (pre?.mediaId === trackedId && pre?.progress != null) ? pre.progress : undefined
+            injectButton(trackedId, progressOverride)
+        })
+    })
+
+    $app.onPreUpdateEntryProgress((e) => {
+        $store.set("RANIME_PRE_UPDATE_ENTRY_PROGRESS", $clone(e))
+        e.next()
+    })
+
+    $app.onPostUpdateEntryProgress((e) => {
+        $store.set("RANIME_POST_UPDATE_ENTRY_PROGRESS", $clone(e))
+        e.next()
     })
 }
