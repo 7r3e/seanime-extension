@@ -47,19 +47,17 @@ function init() {
                 `el.style.touchAction = "pan-x";` +
                 `el.addEventListener("wheel", (event) => {` +
                 `if (event.ctrlKey) return;` +
-                `const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;` +
+                `const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX)` +
+                `? event.deltaY` +
+                `: event.deltaX;` +
                 `if (!delta) return;` +
-                `const scrollTarget = findScrollable(el);` +
-                `if (scrollTarget) {` +
                 `event.preventDefault();` +
-                `scrollTarget.scrollLeft += delta;` +
-                `return;` +
-                `}` +
-                `const nav = findNavButton(el, delta > 0 ? 1 : -1);` +
-                `if (nav) {` +
-                `event.preventDefault();` +
-                `nav.click();` +
-                `}` +
+                `el.dispatchEvent(new KeyboardEvent("keydown", {` +
+                `key: delta > 0 ? "ArrowRight" : "ArrowLeft",` +
+                `code: delta > 0 ? "ArrowRight" : "ArrowLeft",` +
+                `bubbles: true,` +
+                `cancelable: true,` +
+                `}));` +
                 `}, { passive: false });` +
                 `};` +
                 `const scan = () => {` +
