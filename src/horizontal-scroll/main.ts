@@ -45,8 +45,12 @@ function init() {
                 `if (!el || el.dataset.hsWheelBound === "1") return;` +
                 `el.dataset.hsWheelBound = "1";` +
                 `el.style.touchAction = "pan-x";` +
+                `let lastScroll = 0;` +
                 `el.addEventListener("wheel", (event) => {` +
                 `if (event.ctrlKey) return;` +
+                `const now = Date.now();` +
+                `if (now - lastScroll < 120) { event.preventDefault(); return; }` +
+                `lastScroll = now;` +
                 `const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX)` +
                 `? event.deltaY` +
                 `: event.deltaX;` +
