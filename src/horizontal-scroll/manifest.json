@@ -13,7 +13,17 @@
   "payloadURI": "https://raw.githubusercontent.com/Kaktusmann/seanime-extension/refs/heads/main/src/horizontal-scroll/main.ts",
   "plugin": {
     "version": "1",
-    "permissions": {}
+    "permissions": {
+      "scopes": [],
+      "allow": {
+        "unsafeFlags": [
+          {
+            "flag": "dom-script-manipulation",
+            "reason": "For external script injection."
+          }
+        ]
+      }
+    }
   },
   "isDevelopment": false
 }
